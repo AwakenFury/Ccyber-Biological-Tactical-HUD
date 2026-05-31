@@ -1,0 +1,686 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONVERSATIONS | CYBER-BIO HUD</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00eaff;
+            --neon-red: #ff3b3b;
+            --neon-green: #00ff88;
+            --bg-dark: #030712;
+            --glass: rgba(0, 234, 255, 0.05);
+            --panel-bg: rgba(10, 25, 41, 0.95);
+        }
+
+        body {
+            margin: 0; background: var(--bg-dark);
+            font-family: 'Rajdhani', sans-serif; color: var(--neon-cyan);
+            height: 100vh; overflow: hidden;
+            display: flex; flex-direction: column;
+            text-transform: uppercase;
+        }
+
+        /* Scanlines Overlay */
+        body::before {
+            content: " "; 
+            position: fixed; 
+            inset: 0;
+            
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+            linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            
+            background-size: 100% 4px, 3px 100%;
+            animation: scanMove 8s linear infinite;
+
+            z-index: 1000; 
+            pointer-events: none;
+        }
+
+        /* --- STAGE 1: LOGIN --- */
+        #login-stage {
+            position: absolute; inset: 0; z-index: 500;
+            display: flex; justify-content: center; align-items: center;
+            background: radial-gradient(circle at center, #07152e 0%, #02050f 100%);
+        }
+        .login-box {
+            width: 90%; max-width: 400px; padding: 40px; background: var(--panel-bg);
+            border: 1px solid var(--neon-cyan); text-align: center; box-sizing: border-box;
+        }
+        .team-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin: 20px 0; }
+        .team-btn { padding: 8px 2px; font-size: 0.5rem; background: rgba(0, 234, 255, 0.1); border: 1px solid var(--neon-cyan); color: var(--neon-cyan); cursor: pointer; }
+        .team-btn.active { background: var(--neon-cyan); color: black; font-weight: bold; }
+        input { width: 100%; padding: 12px; margin-bottom: 10px; background: black; color: white; border: 1px solid #112233; box-sizing: border-box; font-family: 'Rajdhani'; border-radius: 0; }
+        
+        /* --- STAGE 2: LOADING --- */
+        #loading-stage {
+            display: none; position: absolute; inset: 0; z-index: 400;
+            flex-direction: column; justify-content: center; align-items: center;
+            background: var(--bg-dark);
+        }
+        .progress-container { width: 300px; height: 4px; background: rgba(255,255,255,0.1); margin-top: 20px; }
+        #progress-bar { width: 0%; height: 100%; background: var(--neon-cyan); box-shadow: 0 0 15px var(--neon-cyan); }
+
+        /* --- STAGE 3: MAIN HUD --- */
+        #hud-container {
+            display: none; grid-template-columns: 320px 1fr 320px; grid-template-rows: 80px 1fr 150px;
+            gap: 20px; padding: 20px; height: 100%; box-sizing: border-box;
+            background: radial-gradient(circle at center, #07152e 0%, #02050f 100%);
+        }
+
+        .title-area { grid-column: 2; grid-row: 1; text-align: center; font-family: 'Orbitron'; letter-spacing: 12px; font-size: 2rem; text-shadow: 0 0 15px var(--neon-cyan); }
+        .glass-panel { background: rgba(0, 0, 0, 0.4); border-left: 2px solid var(--neon-cyan); padding: 15px; border-radius: 2px; box-shadow: inset 5px 0 15px rgba(0, 234, 255, 0.05); }
+        
+        .glass-panel {
+    animation: panelPulse 4s infinite alternate;
+}
+
+@keyframes panelPulse {
+
+    0% {
+        box-shadow:
+            inset 5px 0 15px rgba(0,234,255,0.05),
+            0 0 5px rgba(0,234,255,0.05);
+    }
+
+    100% {
+        box-shadow:
+            inset 5px 0 25px rgba(0,234,255,0.12),
+            0 0 12px rgba(0,234,255,0.15);
+    }
+}
+        
+@keyframes scanMove {
+    from {
+        background-position: 0 0, 0 0;
+    }
+    to {
+        background-position: 0 100px, 0 0;
+    }
+}        
+
+.glitch {
+    position: relative;
+    animation: glitch 2s infinite;
+}
+
+@keyframes glitch {
+
+    0% {
+        transform: translate(0);
+    }
+
+    20% {
+        transform: translate(-1px, 1px);
+    }
+
+    40% {
+        transform: translate(-1px, -1px);
+    }
+
+    60% {
+        transform: translate(1px, 1px);
+    }
+
+    80% {
+        transform: translate(1px, -1px);
+    }
+
+    100% {
+        transform: translate(0);
+    }
+}
+        
+        
+        .red-panel { border-left-color: var(--neon-red); }
+        h3 { font-family: 'Orbitron'; font-size: 0.8rem; margin: 0 0 15px 0; color: #fff; opacity: 0.8; }
+
+        .bar-bg { height: 6px; background: #111; width: 100%; margin-top: 5px; border: 1px solid #333; }
+        .bar-fill { height: 100%; background: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); }
+        .bar-fill.red { background: var(--neon-red); box-shadow: 0 0 10px var(--neon-red); }
+
+        .episode-list { list-style: none; padding: 0; font-size: 0.75rem; line-height: 2; }
+        .status-tag { float: right; font-size: 0.6rem; opacity: 0.6; }
+
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        button.hud-btn {
+            background: transparent; border: 1px solid var(--neon-cyan); color: var(--neon-cyan); 
+            padding: 8px; font-family: 'Rajdhani'; cursor: pointer; transition: 0.3s; font-size: 0.7rem;
+            clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+            text-transform: uppercase;
+        }
+        button.hud-btn:hover { background: var(--neon-cyan); color: #000; box-shadow: 0 0 15px var(--neon-cyan); }
+
+        .center-viewport { 
+            grid-column: 2; grid-row: 2; 
+            display: flex; flex-direction: column; gap: 10px; 
+            overflow: hidden; position: relative;
+            border: 1px solid rgba(0, 234, 255, 0.1);
+        }
+        
+        /* --- RADAR INTEGRATION --- */
+        #radar-container {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 400px; height: 400px; border-radius: 50%;
+            border: 1px solid rgba(0, 234, 255, 0.2); pointer-events: none;
+        }
+        .ring { position: absolute; border: 1px solid rgba(0, 234, 255, 0.08); border-radius: 50%; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+        canvas { position: absolute; inset: 0; }
+        .anchor-dot { position: absolute; width: 6px; height: 6px; background: #ffcc00; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 8px #ffcc00; }
+
+        .terminal-output { 
+            position: absolute; bottom: 0; width: 100%; height: 100px;
+            background: rgba(0,0,0,0.6); border-top: 1px solid rgba(0, 234, 255, 0.1); 
+            padding: 10px; font-size: 0.8rem; color: var(--neon-green); 
+            overflow-y: auto; box-sizing: border-box;
+        }
+
+        /* ALERT MODAL */
+        #fugu-alert {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 90%; max-width: 450px; background: rgba(20, 5, 5, 0.98); border: 2px solid var(--neon-red);
+            padding: 30px; display: none; z-index: 2000; text-align: center; box-sizing: border-box;
+            box-shadow: 0 0 100px rgba(255, 59, 59, 0.5);
+        }
+
+        .alert-active { animation: flash-red 1s infinite; }
+        @keyframes flash-red { 50% { box-shadow: inset 0 0 100px rgba(255, 59, 59, 0.3); } }
+
+        footer { grid-column: 1 / 4; grid-row: 3; border-top: 1px solid var(--neon-cyan); padding-top: 15px; display: flex; justify-content: space-around; font-family: 'Orbitron'; font-size: 10px; }
+
+        @media (max-width: 900px) {
+            #hud-container { display: flex; flex-direction: column; overflow-y: auto; }
+            #radar-container { width: 300px; height: 300px; position: relative; top: auto; left: auto; transform: none; margin: 20px auto; }
+            footer { flex-direction: column; gap: 10px; padding: 20px; }
+        }
+    </style>
+</head>
+<body id="main-body">
+
+    <div id="login-stage">
+        <div class="login-box">
+            <h1 style="font-family: 'Orbitron'; font-size: 1.2rem; color: var(--neon-red); letter-spacing: 5px;">DEFENSE LINK</h1>
+            <div class="team-selector">
+                <button class="team-btn" onclick="selectTeam(this)">ALPHA</button>
+                <button class="team-btn" onclick="selectTeam(this)">BRAVO</button>
+                <button class="team-btn active" onclick="selectTeam(this)">CHARLIE</button>
+                <button class="team-btn" onclick="selectTeam(this)">DELTA</button>
+                <button class="team-btn" onclick="selectTeam(this)">ECHO</button>
+            </div>
+            <input type="text" placeholder="NEURAL_ID: USERNAME">
+            <input type="password" placeholder="ACCESS_KEY">
+            <button class="hud-btn" style="width: 100%; padding: 15px; margin-top: 10px;" onclick="startLogin()">ESTABLISH SECURE LINK</button>
+        </div>
+    </div>
+
+    <div id="loading-stage">
+        <h2 style="font-family: 'Orbitron'; font-size: 0.8rem;">SYNCING NEURAL CORES...</h2>
+        <div class="progress-container"><div id="progress-bar"></div></div>
+    </div>
+
+    <div id="hud-container">
+<div class="title-area glitch">CONVERSATIONS</div>
+
+        <div class="left-col" style="grid-column: 1; grid-row: 1/3; display: flex; flex-direction: column; gap: 15px;">
+            <div class="glass-panel">
+                <h3>PROJECT STATUS</h3>
+                <div class="progress-box">
+                    <span style="font-size: 0.7rem;">DEFENSE SYSTEM UPTIME</span>
+                    <div class="bar-bg">
+                        <div class="bar-fill" id="uptime-bar" style="width: 70%;"></div></div>
+                </div>
+            </div>
+            <div class="glass-panel red-panel">
+                <h3>THREATS DETECTED</h3>
+                <div style="font-size: 0.75rem; color: var(--neon-red);">
+                    ⚠ EM VIRUS: CRITICAL<br>
+                    ⚠ TRAITOR: FUGO<br>
+                    ⚠ MALFEASANCE: DETECTED
+                </div>
+            </div>
+            <div class="glass-panel">
+                <h3>SYSTEM LOG</h3>
+                <div id="side-log" style="font-size: 0.7rem; color: #888; line-height: 1.6;">
+                    >> UPLINK SECURE<br>
+                    >> NODE 40.8175° N: SYNCED
+                </div>
+            </div>
+        </div>
+
+        <div class="center-viewport">
+            <div id="radar-container">
+                <canvas id="radarCanvas"></canvas>
+            </div>
+            <div class="terminal-output" id="main-terminal"></div>
+        </div>
+
+        <div class="right-col" style="grid-column: 3; grid-row: 1/3; display: flex; flex-direction: column; gap: 15px;">
+            <div class="glass-panel">
+                <h3>EPISODE LOG</h3>
+                <ul class="episode-list">
+                    <li>01 THE SIGNAL <span class="status-tag">UPLOADED</span></li>
+                    <li>02 NEURAL WARFARE <span class="status-tag">UPLOADED</span></li>
+                    <li>03 BIO HIJACKER <span class="status-tag">UPLOADED</span></li>
+                    <li>04 A PANDEMIC EXPLAINED <span class="status-tag">PENDING</span></li>
+                </ul>
+            </div>
+            <div class="glass-panel">
+                <h3>SUB-SYSTEMS</h3>
+                <div class="btn-grid">
+                    <button class="hud-btn" onclick="alert('Neural Sync Active')">NEURAL</button>
+                    <button class="hud-btn" onclick="alert('Cyber Link Active')">CYBER</button>
+                    <button class="hud-btn" onclick="alert('Bio Research Online')">BIO-SYNC</button>
+                    <button class="hud-btn" onclick="alert('Core Access Granted')">CORE</button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <div class="progress-box" style="width: 200px;">
+                <span style="font-size: 0.6rem; color: var(--neon-red);">EM VIRUS INFECTION</span>
+                <div class="bar-bg"><div class="bar-fill red" style="width: 81%;"></div></div>
+            </div>
+            <div style="align-self: center;">USER: AWAKEN_FURY // TEAM_<span id="team-display">CHARLIE</span></div>
+            <div class="progress-box" style="width: 200px;">
+                <span style="font-size: 0.6rem;">CYBERNETIC INTEGRATION</span>
+                <div class="bar-bg"><div class="bar-fill" style="width: 88%;"></div></div>
+            </div>
+        </footer>
+    </div>
+
+    <div id="fugu-alert">
+        <h3 style="color: var(--neon-red); font-family: 'Orbitron'; border-bottom: 2px solid var(--neon-red); padding-bottom: 10px;">⚠ FUGO ALERT: FUGU_BOTS</h3>
+        <div id="fugu-text" style="font-size: 0.85rem; color: #fff; margin: 20px 0; line-height: 1.6; text-align: left;"></div>
+        <button class="hud-btn" style="width: 100%; border-color: var(--neon-red); color: var(--neon-red);" onclick="closeAlert()">INITIATE COUNTER-PROTOCOL</button>
+    </div>
+
+   
+<script>
+/* =========================================================
+   SYSTEM STATE
+   ========================================================= */
+
+let selectedTeam = "CHARLIE";
+let SYSTEM_STATE = "BOOT";
+
+/* Track all intervals so we can clean them later */
+let intervals = [];
+
+/* =========================================================
+   RADAR SETUP
+   ========================================================= */
+
+const canvas = document.getElementById("radarCanvas");
+const ctx = canvas.getContext("2d");
+
+const rSize = 400;
+const center = 200;
+
+canvas.width = rSize;
+canvas.height = rSize;
+
+const uptimeEl = document.getElementById("uptime-bar");
+
+/* Anchors used for triangulation */
+const anchors = [
+    { name: "A", x: 80,  y: 100 },
+    { name: "B", x: 320, y: 100 },
+    { name: "C", x: 200, y: 330 }
+];
+
+/* Active tracked devices */
+let devices = {};
+
+/* =========================================================
+   RADAR GRID (STATIC VISUAL LAYERS)
+   ========================================================= */
+
+function initRadarGrid() {
+    const container = document.getElementById("radar-container");
+
+    // Rings
+    [50, 100, 150, 195].forEach(r => {
+        const ring = document.createElement("div");
+        ring.className = "ring";
+        ring.style.width = r * 2 + "px";
+        ring.style.height = r * 2 + "px";
+        container.appendChild(ring);
+    });
+
+    // Anchor points
+    anchors.forEach(a => {
+        const dot = document.createElement("div");
+        dot.className = "anchor-dot";
+        dot.style.left = a.x + "px";
+        dot.style.top = a.y + "px";
+        container.appendChild(dot);
+    });
+}
+initRadarGrid();
+
+/* =========================================================
+   TRIANGULATION ENGINE
+   ========================================================= */
+
+function solve(device) {
+    const A = anchors[0];
+
+    let sumX = 0;
+    let sumY = 0;
+    let weightSum = 0;
+
+    for (let i = 1; i < anchors.length; i++) {
+        const B = anchors[i];
+
+        const dA = device.distances[A.name];
+        const dB = device.distances[B.name];
+
+        // Missing signal data → cannot solve
+        if (dA == null || dB == null) return null;
+
+        const weight = 1 / (Math.abs(dA - dB) + 0.001);
+
+        const midX = (A.x + B.x) / 2;
+        const midY = (A.y + B.y) / 2;
+
+        sumX += midX * weight;
+        sumY += midY * weight;
+        weightSum += weight;
+    }
+
+    if (weightSum === 0) return null;
+
+    return {
+        x: sumX / weightSum,
+        y: sumY / weightSum
+    };
+}
+
+/* =========================================================
+   DEVICE UPDATE PIPELINE
+   ========================================================= */
+
+function updateDevice(name, anchorId, rssi) {
+    if (!devices[name]) {
+        devices[name] = {
+            distances: {},
+            pos: { x: center, y: center },
+            trail: []
+        };
+    }
+
+    const d = devices[name];
+
+    // Convert RSSI → rough distance estimate
+    d.distances[anchorId] = Math.pow(10, (-40 - rssi) / (10 * 2.2));
+
+    const p = solve(d);
+
+    if (p) {
+        d.pos.x += (p.x - d.pos.x) * 0.15;
+        d.pos.y += (p.y - d.pos.y) * 0.15;
+
+        d.trail.push({ ...d.pos });
+
+        if (d.trail.length > 20) d.trail.shift();
+    }
+}
+
+/* =========================================================
+   RADAR RENDER LOOP
+   ========================================================= */
+
+let sweepAngle = 0;
+let radarRunning = false;
+
+function drawRadar() {
+    if (radarRunning) return; // prevent double loops
+    radarRunning = true;
+
+    function frame() {
+        ctx.clearRect(0, 0, rSize, rSize);
+
+        /* Sweep effect */
+        const gradient = ctx.createRadialGradient(
+            center, center, 0,
+            center, center, 200
+        );
+
+        gradient.addColorStop(0, "rgba(0,255,255,0)");
+        gradient.addColorStop(1, "rgba(0,255,255,0.15)");
+
+        ctx.beginPath();
+        ctx.moveTo(center, center);
+        ctx.arc(center, center, 200, sweepAngle, sweepAngle + 0.25);
+        ctx.closePath();
+        ctx.fillStyle = gradient;
+        ctx.fill();
+
+        sweepAngle += 0.02;
+
+        /* Draw devices */
+        for (const id in devices) {
+            const d = devices[id];
+
+            // Trail
+            ctx.beginPath();
+            d.trail.forEach((p, i) => {
+                i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+            });
+
+            ctx.strokeStyle = "rgba(0,234,255,0.2)";
+            ctx.stroke();
+
+            // Dot
+            ctx.beginPath();
+            ctx.arc(d.pos.x, d.pos.y, 4, 0, Math.PI * 2);
+
+            ctx.fillStyle = "#00eaff";
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = "#00eaff";
+            ctx.fill();
+
+            // Label
+            ctx.fillStyle = "#00eaff";
+            ctx.font = "8px monospace";
+            ctx.fillText(id, d.pos.x + 6, d.pos.y - 6);
+        }
+
+        requestAnimationFrame(frame);
+    }
+
+    frame();
+}
+
+/* =========================================================
+   UI CONTROLS
+   ========================================================= */
+
+function selectTeam(btn) {
+    document.querySelectorAll(".team-btn")
+        .forEach(b => b.classList.remove("active"));
+
+    btn.classList.add("active");
+    selectedTeam = btn.innerText;
+}
+
+/* =========================================================
+   TYPEWRITER (SAFE APPEND)
+   ========================================================= */
+
+async function typeWriter(text, id, speed = 25) {
+    const el = document.getElementById(id);
+
+    for (let i = 0; i < text.length; i++) {
+        el.innerHTML += text.charAt(i);
+        await new Promise(r => setTimeout(r, speed));
+    }
+
+    el.innerHTML += "<br>";
+    el.scrollTop = el.scrollHeight;
+
+    // prevent memory explosion
+    if (el.innerHTML.length > 8000) {
+        el.innerHTML = el.innerHTML.slice(-4000);
+    }
+}
+
+/* =========================================================
+   LOGIN FLOW
+   ========================================================= */
+
+function startLogin() {
+    document.getElementById("login-stage").style.display = "none";
+    document.getElementById("loading-stage").style.display = "flex";
+
+    document.getElementById("team-display").innerText = selectedTeam;
+
+    let w = 0;
+    const bar = document.getElementById("progress-bar");
+
+    const int = setInterval(() => {
+        w += 2;
+        bar.style.width = w + "%";
+
+        if (w >= 100) {
+            clearInterval(int);
+            showHUD();
+        }
+    }, 30);
+
+    intervals.push(int);
+}
+
+/* =========================================================
+   MAIN HUD START
+   ========================================================= */
+
+async function showHUD() {
+    SYSTEM_STATE = "ACTIVE";
+
+    document.getElementById("loading-stage").style.display = "none";
+    document.getElementById("hud-container").style.display = "grid";
+
+    drawRadar();
+
+    /* Fake bot movement simulation */
+    const botInterval = setInterval(() => {
+        if (SYSTEM_STATE !== "ACTIVE") return;
+
+        const bot = "FUGU_" + Math.floor(Math.random() * 3);
+
+        ["A", "B", "C"].forEach(a => {
+            updateDevice(bot, a, -45 - Math.random() * 55);
+        });
+
+    }, 400);
+
+    intervals.push(botInterval);
+
+    /* Boot messages */
+    await typeWriter("> DEFENSE KERNEL ONLINE.", "main-terminal");
+    await typeWriter("> TRIANGULATING RF SIGNATURES...", "main-terminal");
+    await typeWriter("> ALERT: NEURAL NODE BREACH DETECTED.", "main-terminal");
+
+    /* Continuous logs */
+    const logs = [
+        "PACKET TRACE RECEIVED",
+        "NEURAL SYNC VERIFIED",
+        "RF SIGNAL DETECTED",
+        "WARNING: UNKNOWN DEVICE",
+        "SATELLITE UPLINK STABLE",
+        "DECRYPTION PROCESS ACTIVE"
+    ];
+
+    const logInterval = setInterval(() => {
+        const msg = "> " + logs[Math.floor(Math.random() * logs.length)];
+        typeWriter(msg, "main-terminal", 10);
+    }, 2500);
+
+    intervals.push(logInterval);
+
+    /* Alert system */
+    document.getElementById("main-body").classList.add("alert-active");
+    document.getElementById("fugu-alert").style.display = "block";
+
+    typeWriter("[ALARM]: FUGU BOTS DETECTED", "fugu-text");
+}
+
+/* =========================================================
+   ALERT CONTROL
+   ========================================================= */
+
+function closeAlert() {
+    document.getElementById("fugu-alert").style.display = "none";
+    document.getElementById("main-body").classList.remove("alert-active");
+
+    typeWriter("> COUNTER-MEASURES ACTIVE...", "main-terminal");
+}
+
+/* =========================================================
+   BACKGROUND EFFECTS
+   ========================================================= */
+
+setInterval(() => {
+    const panel = document.querySelector(".red-panel");
+    if (!panel) return;
+
+    panel.style.boxShadow = "0 0 25px rgba(255,0,0,0.8)";
+
+    setTimeout(() => {
+        panel.style.boxShadow = "";
+    }, 400);
+
+}, 7000);
+
+const uptimeInterval = setInterval(() => {
+    const val = Math.floor(60 + Math.random() * 30);
+    uptimeEl.style.width = val + "%";
+}, 3000);
+
+intervals.push(uptimeInterval);
+
+/* Glitch effect */
+setInterval(() => {
+    const intensity = Math.random();
+
+    if (intensity > 0.7) {
+        document.body.style.transform =
+            "skewX(" + (Math.random() * 2 - 1) + "deg)";
+        document.body.style.filter = "hue-rotate(10deg) contrast(1.1)";
+    } else {
+        document.body.style.transform = "none";
+        document.body.style.filter = "none";
+    }
+
+    setTimeout(() => {
+        document.body.style.transform = "none";
+        document.body.style.filter = "none";
+    }, 120);
+
+}, 8000);
+
+/* Optional utility */
+function animateNumber(el, start, end, duration = 1000, suffix = "") {
+    const startTime = performance.now();
+
+    function update(now) {
+        const progress = Math.min((now - startTime) / duration, 1);
+        const value = Math.floor(start + (end - start) * progress);
+
+        el.innerText = value + suffix;
+
+        if (progress < 1) requestAnimationFrame(update);
+    }
+
+    requestAnimationFrame(update);
+}
+</script>
+
+
+</body>
+</html>
+
